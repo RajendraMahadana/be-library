@@ -9,5 +9,5 @@ type Book struct {
 	ISBN      string
 	Stock     int
 	CreatedAt time.Time
-	UpadateAt time.Time
+	UpdatedAt time.Time
 }

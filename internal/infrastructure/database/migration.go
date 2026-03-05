@@ -2,7 +2,7 @@ package database
 
 import (
 	"log"
-
+	"time"
 	"gorm.io/gorm"
 )
 
@@ -12,6 +12,8 @@ type BookModel struct {
 	Author string `gorm:"size:255;not null"`
 	ISBN   string `gorm:"size:100;unique"`
 	Stock  int
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 func AutoMigrate(db *gorm.DB) {

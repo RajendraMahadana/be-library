@@ -31,6 +31,10 @@ func (u *BookUsecase) GetAllBooks() ([]domain.Book, error) {
 	return u.repo.FindAll()
 }
 
+func (u *BookUsecase) GetBooks(page int, limit int, search string) ([]domain.Book, int64, error) {
+	return u.repo.GetBooks(page,limit, search)
+}
+
 func (u *BookUsecase) GetBookByID(id uint) (*domain.Book, error) {
 	return u.repo.FindByID(id)
 }

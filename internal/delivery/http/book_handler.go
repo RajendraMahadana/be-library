@@ -38,9 +38,14 @@ func (h *BookHandler) Create(c *gin.Context) {
 		return
 	}
 
+	c.JSON(http.StatusCreated, gin.H{
+		"message" : "Buku berhasil dibuat",
+		"data" : book,
+	})
+
 }
 
-func (h *BookHandler) GetAll(c *gin.Context) {
+func (h *BookHandler) GetAllBooks(c *gin.Context) {
 	books, err := h.usecase.GetAllBooks()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -60,6 +65,41 @@ func (h *BookHandler) GetAll(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+func (h *BookHandler) GetBook(c *gin.Context) {
+
+	pageStr := c.DefaultQuery("page", "1")
+	limitStr := c.DefaultQuery("limit", "10")
+	search := c.Query("search")
+
+	page, _ := strconv.Atoi(pageStr)
+	limit, _ := strconv.Atoi(limitStr)
+
+	books, total, err := h.usecase.GetBooks(page, limit, search)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	var response []dto.BookResponse
+
+	for _, b := range books {
+		response = append(response, dto.BookResponse{
+			ID:     b.ID,
+			Title:  b.Title,
+			Author: b.Author,
+			ISBN:   b.ISBN,
+			Stock:  b.Stock,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"page":  page,
+		"limit": limit,
+		"total": total,
+		"data":  response,
+	})
 }
 
 func (h *BookHandler) GetByID(c *gin.Context) {

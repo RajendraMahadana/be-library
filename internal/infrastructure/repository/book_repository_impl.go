@@ -47,6 +47,41 @@ func (r *bookRepository) FindAll() ([]domain.Book, error) {
 	return books, nil
 }
 
+func (r *bookRepository) GetBooks(page int, limit int, search string) ([]domain.Book, int64, error) {
+
+	var models []infra.BookModel
+	var total int64
+
+	query := r.db.Model(&infra.BookModel{})
+
+	if search != "" {
+		query = query.Where("title LIKE ?", "%"+search+"%")
+	}
+
+	query.Count(&total)
+
+	offset := (page - 1) * limit
+
+	err := query.Limit(limit).Offset(offset).Find(&models).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	var books []domain.Book
+
+	for _, m := range models {
+		books = append(books, domain.Book{
+			ID:     m.ID,
+			Title:  m.Title,
+			Author: m.Author,
+			ISBN:   m.ISBN,
+			Stock:  m.Stock,
+		})
+	}
+
+	return books, total, nil
+}
+
 func (r *bookRepository) FindByID(id uint) (*domain.Book, error) {
 	var model infra.BookModel
 

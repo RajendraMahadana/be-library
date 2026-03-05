@@ -5,6 +5,7 @@ import "github.com/RajendraMahadana/perpustakaan-clean/internal/domain"
 type BookRepository interface {
 	Create(book *domain.Book) error
 	FindAll() ([]domain.Book, error)
+	GetBooks(page int, limit int, search string) ([]domain.Book, int64, error)
 	FindByID(id uint) (*domain.Book, error)
 	Update(book *domain.Book) error
 	Delete(id uint) error

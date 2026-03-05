@@ -36,7 +36,8 @@ func main() {
 	r := gin.Default()
 
 	r.POST("/books", handler.Create)
-	r.GET("/books", handler.GetAll)
+	r.GET("/books", handler.GetAllBooks)
+	r.GET("/books/limit", handler.GetBook)
 	r.GET("/books/:id", handler.GetByID)
 	r.PUT("/books/:id", handler.Update)
 	r.DELETE("/books/:id", handler.Delete)
