@@ -14,9 +14,12 @@ type BookModel struct {
 	Title     string `gorm:"size:255;not null;index"`
 	Author    string `gorm:"size:255;not null;index"`
 	ISBN      string `gorm:"size:100;uniqueIndex"`
+	Year      int    `gorm:"not null"`
 	Stock     int    `gorm:"default:0"`
+	Available int    `gorm:"default:0"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
 }
 
 // TableName untuk BookModel
@@ -96,12 +99,36 @@ func (u *UserModel) CheckPassword(password string) bool {
 	return err == nil
 }
 
+type BorrowingModel struct {
+	ID         uint      `gorm:"primaryKey"`
+	UserID     uint      `gorm:"not null;index"`
+	BookID     uint      `gorm:"not null;index"`
+	BorrowDate time.Time `gorm:"not null"`
+	DueDate    time.Time `gorm:"not null"`
+	ReturnDate *time.Time
+	Status     string    `gorm:"size:20;default:borrowed;index"`
+	Fine       float64   `gorm:"default:0"`
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	DeletedAt  gorm.DeletedAt `gorm:"index"`
+
+	// Relasi
+	User UserModel `gorm:"foreignKey:UserID"`
+	Book BookModel `gorm:"foreignKey:BookID"`
+}
+
+func (BorrowingModel) TableName() string {
+	return "borrowings"
+}
+
 // AutoMigrate menjalankan migrasi database
 func AutoMigrate(db *gorm.DB) {
 	// Daftar model yang akan dimigrasi
 	err := db.AutoMigrate(
 		&BookModel{},
 		&UserModel{},
+		&BorrowingModel{},
+
 	)
 	
 	if err != nil {

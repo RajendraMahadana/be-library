@@ -20,6 +20,12 @@ import (
 	bookRepo "github.com/RajendraMahadana/perpustakaan-clean/internal/repository"
 	bookUsecase "github.com/RajendraMahadana/perpustakaan-clean/internal/usecase"
 
+	// 🔴 BARU: Borrowing imports
+	borrowingHttp "github.com/RajendraMahadana/perpustakaan-clean/internal/delivery/http"
+	borrowingRepoImpl "github.com/RajendraMahadana/perpustakaan-clean/internal/infrastructure/repository"
+	borrowingRepo "github.com/RajendraMahadana/perpustakaan-clean/internal/repository"
+	borrowingUsecase "github.com/RajendraMahadana/perpustakaan-clean/internal/usecase"
+
 	// Middleware
 	"github.com/RajendraMahadana/perpustakaan-clean/pkg/middleware"
 
@@ -35,21 +41,21 @@ func main() {
 	}
 
 	// Load Config
-	cfg, err := config.LoadConfig() // Ubah nama variabel jadi cfg
+	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Fatal("Error loading config: ", err)
 	}
 
-	// Inisialisasi JWT dengan config
+	// Connect Database
 	db, err := database.NewMySQLConnectionWithConfig(cfg)
 	if err != nil {
 		log.Fatal("Failed to connect database:", err)
 	}
 
-	// Connect Database
+	// Auto Migrate
 	database.AutoMigrate(db)
 
-	// Gunakan config untuk inisialisasi JWT
+	// Inisialisasi JWT dengan config
 	utils.InitJWTWithConfig(cfg)
 
 	// ==================== INITIALIZE REPOSITORIES ====================
@@ -59,6 +65,9 @@ func main() {
 	// User Repository (untuk auth)
 	var userRepo authRepo.UserRepository = authRepoImpl.NewUserRepository(db)
 
+	// 🔴 BARU: Borrowing Repository
+	var borrowingRepo borrowingRepo.BorrowingRepository = borrowingRepoImpl.NewBorrowingRepository(db)
+
 	// ==================== INITIALIZE USECASES ====================
 	// Book Usecase
 	bookUsecase := bookUsecase.NewBookUsecase(bookRepo)
@@ -66,12 +75,23 @@ func main() {
 	// Auth Usecase
 	authUsecase := authUsecase.NewAuthUsecase(userRepo)
 
+	// 🔴 BARU: Borrowing Usecase (TANPA TRANSACTION MANAGER)
+	borrowingUsecase := borrowingUsecase.NewBorrowingUsecase(
+		borrowingRepo,
+		bookRepo,
+		userRepo,
+		// TIDAK PERLU TX MANAGER
+	)
+
 	// ==================== INITIALIZE HANDLERS ====================
 	// Book Handler
 	bookHandler := bookHttp.NewBookHandler(bookUsecase)
 
 	// Auth Handler
 	authHandler := authHttp.NewAuthHandler(authUsecase)
+
+	// 🔴 BARU: Borrowing Handler
+	borrowingHandler := borrowingHttp.NewBorrowingHandler(borrowingUsecase)
 
 	// ==================== INITIALIZE MIDDLEWARE ====================
 	authMiddleware := middleware.NewAuthMiddleware()
@@ -106,22 +126,34 @@ func main() {
 			books.GET("/:id", bookHandler.GetByID)
 		}
 
-		// Admin only routes
+		// 🔴 BARU: Borrowing routes (semua user yang sudah login)
+		borrowings := protected.Group("/borrowings")
+		{
+			borrowings.POST("/", borrowingHandler.PinjamBuku)
+			borrowings.POST("/return", borrowingHandler.KembalikanBuku)
+			borrowings.GET("/my", borrowingHandler.GetMyBorrowings)
+			borrowings.GET("/active", borrowingHandler.GetActiveBorrowings)
+			borrowings.GET("/:id", borrowingHandler.GetBorrowingByID)
+		}
+
 		admin := protected.Group("/admin")
 		admin.Use(authMiddleware.Authorize("admin"))
 		{
 			admin.POST("/books", bookHandler.Create)
 			admin.PUT("/books/:id", bookHandler.Update)
 			admin.DELETE("/books/:id", bookHandler.Delete)
+
+			admin.GET("/borrowings", borrowingHandler.GetAllBorrowings)
 		}
 	}
 
 	// ==================== RUN SERVER ====================
-	port := cfg.AppPort // Gunakan port dari config
+	port := cfg.AppPort
 	if port == "" {
 		port = "8080"
 	}
 
-	log.Printf("Server running on port %s", port)
+	log.Printf("✅ Server running on port %s", port)
+	log.Printf("✅ Fitur peminjaman buku siap digunakan!")
 	r.Run(":" + port)
 }

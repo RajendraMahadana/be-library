@@ -9,4 +9,5 @@ type BookRepository interface {
 	FindByID(id uint) (*domain.Book, error)
 	Update(book *domain.Book) error
 	Delete(id uint) error
+	WithTransaction(fn func(tx interface{}) error) error
 }

@@ -24,6 +24,10 @@ func (u *BookUsecase) CreateBook(book *domain.Book) error {
 		return errors.New("stock cannot be negative")
 	}
 
+	if book.Available == 0 && book.Stock > 0 {
+		book.Available = book.Stock
+	}
+
 	return u.repo.Create(book)
 }
 
